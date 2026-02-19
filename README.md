@@ -1,7 +1,3 @@
-# Simple Blog API
-
-A very simple Django REST API for users and posts.
-
 ## Run
 
 ```bash
