@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Post, Tag
+from .models import Post, PostLike, Tag
 
 
 User = get_user_model()
@@ -104,3 +104,67 @@ class PostErrorHandlingTests(APITestCase):
         self.assertEqual(response.data["status_code"], status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("name", response.data["errors"])
+
+
+class PostQueryFeatureTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="query-user",
+            email="query@example.com",
+            password="strong-pass-123",
+        )
+        self.other_user = User.objects.create_user(
+            username="another-user",
+            email="another@example.com",
+            password="strong-pass-123",
+        )
+
+        self.python_tag = Tag.objects.create(name="python")
+        self.django_tag = Tag.objects.create(name="django")
+
+        self.post_1 = Post.objects.create(
+            author=self.user,
+            name="Django tips",
+            content="Great content for backend",
+            category="tech",
+            image="https://example.com/p1.jpg",
+        )
+        self.post_1.tags.add(self.django_tag)
+
+        self.post_2 = Post.objects.create(
+            author=self.other_user,
+            name="Python basics",
+            content="Start python quickly",
+            category="coding",
+        )
+        self.post_2.tags.add(self.python_tag)
+
+        PostLike.objects.create(post=self.post_1, user=self.other_user)
+
+    def test_post_search_supports_content_and_tags(self):
+        response_by_content = self.client.get(reverse("post-list-create"), {"search": "backend"})
+        response_by_tag = self.client.get(reverse("post-list-create"), {"search": "python"})
+
+        self.assertEqual(response_by_content.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_by_content.data), 1)
+        self.assertEqual(response_by_content.data[0]["id"], self.post_1.id)
+
+        self.assertEqual(response_by_tag.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_by_tag.data), 1)
+        self.assertEqual(response_by_tag.data[0]["id"], self.post_2.id)
+
+    def test_post_list_can_filter_by_category(self):
+        response = self.client.get(reverse("post-list-create"), {"category": "tech"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.post_1.id)
+
+    def test_liked_posts_are_retrievable_for_user(self):
+        response = self.client.get(
+            reverse("user-liked-post-list", kwargs={"user_id": self.other_user.id})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.post_1.id)

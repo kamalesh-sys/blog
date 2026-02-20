@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -29,6 +30,19 @@ class PostListCreateAPIView(APIView):
 
     def get(self, request):
         posts = Post.objects.select_related("author").prefetch_related("tags").all()
+
+        search_text = request.query_params.get("search", "").strip()
+        category = request.query_params.get("category", "").strip()
+
+        if search_text:
+            posts = posts.filter(
+                Q(content__icontains=search_text) | Q(tags__name__icontains=search_text)
+            )
+
+        if category:
+            posts = posts.filter(category__iexact=category)
+
+        posts = posts.distinct()
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -90,6 +104,23 @@ class UserPostListAPIView(APIView):
             Post.objects.select_related("author")
             .prefetch_related("tags")
             .filter(author_id=user_id)
+        )
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserLikedPostListAPIView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get(self, request, user_id):
+        if not User.objects.filter(id=user_id).exists():
+            raise NotFound("User not found.")
+
+        posts = (
+            Post.objects.select_related("author")
+            .prefetch_related("tags")
+            .filter(likes__user_id=user_id)
+            .distinct()
         )
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

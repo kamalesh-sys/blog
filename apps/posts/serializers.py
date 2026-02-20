@@ -20,6 +20,8 @@ class PostSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "content",
+            "image",
+            "category",
             "author",
             "author_username",
             "likes_count",
@@ -42,6 +44,12 @@ class PostSerializer(serializers.ModelSerializer):
         if clean_value == "":
             raise serializers.ValidationError("Post content cannot be empty.")
         return clean_value
+
+    def validate_image(self, value):
+        return value.strip()
+
+    def validate_category(self, value):
+        return value.strip()
 
     def validate_tag_names(self, value):
         cleaned_names = []

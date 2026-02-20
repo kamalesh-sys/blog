@@ -18,6 +18,8 @@ class Post(TimeStampedModel):
     )
     name = models.CharField(max_length=150)
     content = models.TextField()
+    image = models.URLField(blank=True)
+    category = models.CharField(max_length=80, blank=True, db_index=True)
     tags = models.ManyToManyField("Tag", related_name="posts", blank=True)
 
     class Meta:

@@ -14,6 +14,8 @@ API base: http://127.0.0.1:8000/api/
 - `POST /api/auth/register/`
 - `POST /api/auth/login/`
 - `GET /api/auth/me/`
+- `PUT /api/auth/me/`
+- `PATCH /api/auth/me/`
 
 ### Posts
 - `GET /api/posts/`
@@ -23,6 +25,11 @@ API base: http://127.0.0.1:8000/api/
 - `PATCH /api/posts/<pk>/`
 - `DELETE /api/posts/<pk>/`
 - `GET /api/users/<user_id>/posts/`
+- `GET /api/users/<user_id>/liked-posts/`
 - `GET /api/posts/<post_id>/comments/`
 - `POST /api/posts/<post_id>/comments/`
 - `POST /api/posts/<post_id>/like/`
+
+### Query Params
+- `GET /api/posts/?search=<text>` (search in post content and tags)
+- `GET /api/posts/?category=<category_name>` (filter by category)
