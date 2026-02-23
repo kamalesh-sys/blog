@@ -1,8 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+
+from .models import Follow
 
 
 User = get_user_model()
@@ -104,6 +108,7 @@ class UserProfileFeatureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("phone_no", response.data["errors"])
 
+    @override_settings(ALLOWED_HOSTS=["example.com"])
     def test_current_user_profile_can_upload_profile_pic_via_file_field(self):
         self.client.force_authenticate(user=self.user)
         image = SimpleUploadedFile("avatar.jpg", b"fake-image-content", content_type="image/jpeg")
@@ -112,7 +117,66 @@ class UserProfileFeatureTests(APITestCase):
             reverse("current-user"),
             {"file": image},
             format="multipart",
+            HTTP_HOST="example.com",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("/media/uploads/", response.data["profile_pic"])
+
+
+class UserFollowFeatureTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="alice-follow",
+            email="alice-follow@example.com",
+            password="strong-pass-123",
+        )
+        self.target = User.objects.create_user(
+            username="bob-follow",
+            email="bob-follow@example.com",
+            password="strong-pass-123",
+        )
+        self.other = User.objects.create_user(
+            username="charlie-follow",
+            email="charlie-follow@example.com",
+            password="strong-pass-123",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_follow_toggle_and_follower_following_lists(self):
+        follow_response = self.client.post(reverse("follow-toggle", kwargs={"user_id": self.target.id}))
+        self.assertEqual(follow_response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(follow_response.data["following"])
+
+        following_response = self.client.get(
+            reverse("user-following-list", kwargs={"user_id": self.user.id})
+        )
+        self.assertEqual(following_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(following_response.data), 1)
+        self.assertEqual(following_response.data[0]["id"], self.target.id)
+
+        followers_response = self.client.get(
+            reverse("user-follower-list", kwargs={"user_id": self.target.id})
+        )
+        self.assertEqual(followers_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(followers_response.data), 1)
+        self.assertEqual(followers_response.data[0]["id"], self.user.id)
+
+        unfollow_response = self.client.post(reverse("follow-toggle", kwargs={"user_id": self.target.id}))
+        self.assertEqual(unfollow_response.status_code, status.HTTP_200_OK)
+        self.assertFalse(unfollow_response.data["following"])
+
+    def test_user_cannot_follow_self(self):
+        response = self.client.post(reverse("follow-toggle", kwargs={"user_id": self.user.id}))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "You cannot follow yourself.")
+
+    def test_follow_model_rejects_self_follow(self):
+        with self.assertRaises(ValidationError):
+            Follow.objects.create(follower=self.user, following=self.user)
+
+    def test_follow_model_rejects_duplicate_follow(self):
+        Follow.objects.create(follower=self.user, following=self.target)
+        with self.assertRaises(ValidationError):
+            Follow.objects.create(follower=self.user, following=self.target)

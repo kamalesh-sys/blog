@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -30,20 +29,34 @@ class PostListCreateAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        posts = Post.objects.select_related("author").prefetch_related("tags").all()
+        posts = list(Post.objects.select_related("author").prefetch_related("tags").all())
 
         search_text = request.query_params.get("search", "").strip()
         category = request.query_params.get("category", "").strip()
 
         if search_text:
-            posts = posts.filter(
-                Q(content__icontains=search_text) | Q(tags__name__icontains=search_text)
-            )
+            lowered_search = search_text.lower()
+            searched_posts = []
+            for post in posts:
+                content_text = (post.content or "").lower()
+                tag_match = False
+                for tag in post.tags.all():
+                    if lowered_search in (tag.name or "").lower():
+                        tag_match = True
+                        break
+
+                if lowered_search in content_text or tag_match:
+                    searched_posts.append(post)
+            posts = searched_posts
 
         if category:
-            posts = posts.filter(category__iexact=category)
+            lowered_category = category.lower()
+            category_filtered_posts = []
+            for post in posts:
+                if (post.category or "").lower() == lowered_category:
+                    category_filtered_posts.append(post)
+            posts = category_filtered_posts
 
-        posts = posts.distinct()
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -135,12 +148,34 @@ class UserLikedPostListAPIView(APIView):
         if not User.objects.filter(id=user_id).exists():
             raise NotFound("User not found.")
 
-        posts = (
-            Post.objects.select_related("author")
-            .prefetch_related("tags")
-            .filter(likes__user_id=user_id)
-            .distinct()
-        )
+        all_posts = Post.objects.select_related("author").prefetch_related("tags", "likes").all()
+        posts = []
+        for post in all_posts:
+            is_liked_by_user = False
+            for like in post.likes.all():
+                if like.user_id == user_id:
+                    is_liked_by_user = True
+                    break
+
+            if is_liked_by_user:
+                posts.append(post)
+
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FollowingPostListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        following_users = list(request.user.following.all())
+        all_posts = Post.objects.select_related("author").prefetch_related("tags").all()
+
+        posts = []
+        for post in all_posts:
+            if post.author in following_users:
+                posts.append(post)
+
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

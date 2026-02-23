@@ -6,7 +6,7 @@ from .models import Comment, Post, PostLike, Tag
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
 	list_display = ("id", "name", "author", "created_at")
-	search_fields = ("name", "author__username")
+	search_fields = ("name",)
 	list_filter = ("created_at",)
 	filter_horizontal = ("tags",)
 
@@ -14,14 +14,14 @@ class PostAdmin(admin.ModelAdmin):
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
 	list_display = ("id", "post", "author", "created_at")
-	search_fields = ("post__name", "author__username")
+	search_fields = ("content",)
 	list_filter = ("created_at",)
 
 
 @admin.register(PostLike)
 class PostLikeAdmin(admin.ModelAdmin):
 	list_display = ("id", "post", "user", "created_at")
-	search_fields = ("post__name", "user__username")
+	search_fields = ()
 
 
 @admin.register(Tag)

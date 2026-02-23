@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    FollowingPostListAPIView,
     PostCommentListCreateAPIView,
     PostLikeToggleAPIView,
     PostListCreateAPIView,
@@ -11,6 +12,7 @@ from .views import (
 
 urlpatterns = [
     path("posts/", PostListCreateAPIView.as_view(), name="post-list-create"),
+    path("posts/following/", FollowingPostListAPIView.as_view(), name="following-post-list"),
     path("posts/<int:pk>/", PostRetrieveUpdateDestroyAPIView.as_view(), name="post-detail"),
     path("users/<int:user_id>/posts/", UserPostListAPIView.as_view(), name="user-post-list"),
     path(

@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 
+from .models import Follow
+
 
 User = get_user_model()
 
@@ -18,6 +20,9 @@ def validate_and_normalize_phone_no(value):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    followers_count = serializers.IntegerField(source="followers.count", read_only=True)
+    following_count = serializers.IntegerField(source="following.count", read_only=True)
+
     def validate_phone_no(self, value):
         return validate_and_normalize_phone_no(value)
 
@@ -34,7 +39,24 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_no",
             "profile_pic",
             "dob",
+            "followers_count",
+            "following_count",
         ]
+
+
+class UserPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "display_name", "profile_pic"]
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    follower = UserPublicSerializer(read_only=True)
+    following = UserPublicSerializer(read_only=True)
+
+    class Meta:
+        model = Follow
+        fields = ["id", "follower", "following", "created_at"]
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -79,11 +101,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         username = attrs.get("username", "").strip()
         email = attrs.get("email", "").strip().lower()
 
-        if username and User.objects.filter(username__iexact=username).exists():
-            errors["username"] = ["A user with this username already exists."]
+        if username:
+            for existing_user in User.objects.all():
+                if (existing_user.username or "").lower() == username.lower():
+                    errors["username"] = ["A user with this username already exists."]
+                    break
 
-        if email and User.objects.filter(email__iexact=email).exists():
-            errors["email"] = ["A user with this email already exists."]
+        if email:
+            for existing_user in User.objects.all():
+                if (existing_user.email or "").lower() == email.lower():
+                    errors["email"] = ["A user with this email already exists."]
+                    break
 
         if errors:
             raise serializers.ValidationError(errors)

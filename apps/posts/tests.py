@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from .models import Post, PostLike, Tag
+from apps.users.models import Follow
 
 
 User = get_user_model()
@@ -48,6 +50,7 @@ class PostTagAPITests(APITestCase):
             ["python", "api"],
         )
 
+    @override_settings(ALLOWED_HOSTS=["example.com"])
     def test_create_post_accepts_optional_file_and_sets_image_url(self):
         image = SimpleUploadedFile("post.jpg", b"fake-image-content", content_type="image/jpeg")
         payload = {
@@ -56,11 +59,17 @@ class PostTagAPITests(APITestCase):
             "file": image,
         }
 
-        response = self.client.post(reverse("post-list-create"), payload, format="multipart")
+        response = self.client.post(
+            reverse("post-list-create"),
+            payload,
+            format="multipart",
+            HTTP_HOST="example.com",
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("/media/uploads/", response.data["image"])
 
+    @override_settings(ALLOWED_HOSTS=["example.com"])
     def test_patch_post_accepts_optional_file_and_updates_image_url(self):
         post = Post.objects.create(author=self.user, name="First", content="Body")
         image = SimpleUploadedFile("updated.jpg", b"fake-image-content", content_type="image/jpeg")
@@ -69,6 +78,7 @@ class PostTagAPITests(APITestCase):
             reverse("post-detail", kwargs={"pk": post.id}),
             {"file": image},
             format="multipart",
+            HTTP_HOST="example.com",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -191,6 +201,16 @@ class PostQueryFeatureTests(APITestCase):
         response = self.client.get(
             reverse("user-liked-post-list", kwargs={"user_id": self.other_user.id})
         )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.post_1.id)
+
+    def test_following_posts_are_retrievable_for_user(self):
+        Follow.objects.create(follower=self.other_user, following=self.user)
+
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(reverse("following-post-list"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)

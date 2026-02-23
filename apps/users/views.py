@@ -1,12 +1,30 @@
 from django.db import transaction
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.image_utils import upload_image_file
-from .serializers import UserLoginSerializer, UserRegistrationSerializer, UserSerializer
+from .models import Follow
+from .serializers import (
+    UserLoginSerializer,
+    UserPublicSerializer,
+    UserRegistrationSerializer,
+    UserSerializer,
+)
+
+
+User = get_user_model()
+
+
+def get_user_or_404(user_id):
+    user = User.objects.filter(id=user_id).first()
+    if user is None:
+        raise NotFound("User not found.")
+    return user
 
 
 class UserRegistrationAPIView(APIView):
@@ -83,3 +101,50 @@ class ImageUploadAPIView(APIView):
             {"url": image_url},
             status=status.HTTP_201_CREATED
         )
+
+
+class FollowToggleAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        target_user = get_user_or_404(user_id)
+
+        if request.user.id == target_user.id:
+            return Response(
+                {"detail": "You cannot follow yourself."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        follow, created = Follow.objects.get_or_create(
+            follower=request.user,
+            following=target_user,
+        )
+        if created:
+            return Response(
+                {"detail": "User followed.", "following": True},
+                status=status.HTTP_201_CREATED,
+            )
+
+        follow.delete()
+        return Response(
+            {"detail": "User unfollowed.", "following": False},
+            status=status.HTTP_200_OK,
+        )
+
+
+class UserFollowerListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        user = get_user_or_404(user_id)
+        serializer = UserPublicSerializer(user.followers.all(), many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserFollowingListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        user = get_user_or_404(user_id)
+        serializer = UserPublicSerializer(user.following.all(), many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

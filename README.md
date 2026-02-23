@@ -17,6 +17,9 @@ API base: http://127.0.0.1:8000/api/
 - `PUT /api/auth/me/`
 - `PATCH /api/auth/me/`
   - supports optional multipart `file` to auto-upload and set `profile_pic`
+- `POST /api/users/<user_id>/follow/` (auth required, toggle follow/unfollow)
+- `GET /api/users/<user_id>/followers/` (auth required)
+- `GET /api/users/<user_id>/following/` (auth required)
 
 ### Uploads
 - `POST /api/uploads/image/` (auth required, multipart form-data)
@@ -30,6 +33,7 @@ API base: http://127.0.0.1:8000/api/
 - `GET /api/posts/`
 - `POST /api/posts/`
   - supports optional multipart `file` to auto-upload and set `image`
+- `GET /api/posts/following/` (auth required, posts from users you follow)
 - `GET /api/posts/<pk>/`
 - `PUT /api/posts/<pk>/`
 - `PATCH /api/posts/<pk>/`
