@@ -17,6 +17,13 @@ API base: http://127.0.0.1:8000/api/
 - `PUT /api/auth/me/`
 - `PATCH /api/auth/me/`
 
+### Uploads
+- `POST /api/uploads/image/` (auth required, multipart form-data)
+  - field: `file`
+  - allowed types: image/*
+  - max size: 5MB
+  - response: `{ "url": "<absolute_media_url>" }`
+
 ### Posts
 - `GET /api/posts/`
 - `POST /api/posts/`

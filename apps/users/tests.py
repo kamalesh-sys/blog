@@ -77,3 +77,28 @@ class UserProfileFeatureTests(APITestCase):
         self.assertEqual(response.data["phone_no"], payload["phone_no"])
         self.assertEqual(response.data["profile_pic"], payload["profile_pic"])
         self.assertEqual(response.data["dob"], payload["dob"])
+
+    def test_register_rejects_invalid_phone_number(self):
+        payload = {
+            "username": "bob",
+            "email": "bob@example.com",
+            "password": "strong-pass-123",
+            "phone_no": "12345",
+        }
+
+        response = self.client.post(reverse("user-register"), payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("phone_no", response.data["errors"])
+
+    def test_current_user_profile_rejects_invalid_phone_number(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("current-user"),
+            {"phone_no": "12-34"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("phone_no", response.data["errors"])

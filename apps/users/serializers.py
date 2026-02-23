@@ -5,7 +5,22 @@ from rest_framework import serializers
 User = get_user_model()
 
 
+def validate_and_normalize_phone_no(value):
+    clean_value = value.strip()
+    if clean_value == "":
+        return ""
+
+    only_digits = "".join(character for character in clean_value if character.isdigit())
+    if len(only_digits) != 10:
+        raise serializers.ValidationError("Phone number must be exactly 10 digits.")
+
+    return only_digits
+
+
 class UserSerializer(serializers.ModelSerializer):
+    def validate_phone_no(self, value):
+        return validate_and_normalize_phone_no(value)
+
     class Meta:
         model = User
         fields = [
@@ -55,6 +70,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if clean_value == "":
             raise serializers.ValidationError("Email is required.")
         return clean_value.lower()
+
+    def validate_phone_no(self, value):
+        return validate_and_normalize_phone_no(value)
 
     def validate(self, attrs):
         errors = {}
