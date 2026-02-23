@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -102,3 +103,16 @@ class UserProfileFeatureTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("phone_no", response.data["errors"])
+
+    def test_current_user_profile_can_upload_profile_pic_via_file_field(self):
+        self.client.force_authenticate(user=self.user)
+        image = SimpleUploadedFile("avatar.jpg", b"fake-image-content", content_type="image/jpeg")
+
+        response = self.client.patch(
+            reverse("current-user"),
+            {"file": image},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("/media/uploads/", response.data["profile_pic"])

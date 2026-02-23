@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.image_utils import upload_image_file
 from .models import Comment, Post, PostLike
 from .serializers import CommentSerializer, PostSerializer
 
@@ -47,7 +48,13 @@ class PostListCreateAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        serializer = PostSerializer(data=request.data)
+        payload = request.data.copy()
+        payload.pop("file", None)
+        image_file = request.FILES.get("file")
+        if image_file is not None:
+            payload["image"] = upload_image_file(request, image_file)
+
+        serializer = PostSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         serializer.save(author=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -67,7 +74,13 @@ class PostRetrieveUpdateDestroyAPIView(APIView):
         if post.author != request.user:
             raise PermissionDenied("Only the owner can edit this post.")
 
-        serializer = PostSerializer(post, data=request.data)
+        payload = request.data.copy()
+        payload.pop("file", None)
+        image_file = request.FILES.get("file")
+        if image_file is not None:
+            payload["image"] = upload_image_file(request, image_file)
+
+        serializer = PostSerializer(post, data=payload)
         serializer.is_valid(raise_exception=True)
         serializer.save(author=post.author)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -78,7 +91,13 @@ class PostRetrieveUpdateDestroyAPIView(APIView):
         if post.author != request.user:
             raise PermissionDenied("Only the owner can edit this post.")
 
-        serializer = PostSerializer(post, data=request.data, partial=True)
+        payload = request.data.copy()
+        payload.pop("file", None)
+        image_file = request.FILES.get("file")
+        if image_file is not None:
+            payload["image"] = upload_image_file(request, image_file)
+
+        serializer = PostSerializer(post, data=payload, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(author=post.author)
         return Response(serializer.data, status=status.HTTP_200_OK)

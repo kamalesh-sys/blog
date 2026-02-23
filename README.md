@@ -16,6 +16,7 @@ API base: http://127.0.0.1:8000/api/
 - `GET /api/auth/me/`
 - `PUT /api/auth/me/`
 - `PATCH /api/auth/me/`
+  - supports optional multipart `file` to auto-upload and set `profile_pic`
 
 ### Uploads
 - `POST /api/uploads/image/` (auth required, multipart form-data)
@@ -23,13 +24,16 @@ API base: http://127.0.0.1:8000/api/
   - allowed types: image/*
   - max size: 5MB
   - response: `{ "url": "<absolute_media_url>" }`
+  - note: this endpoint only uploads and returns URL; it does not update `User` or `Post`
 
 ### Posts
 - `GET /api/posts/`
 - `POST /api/posts/`
+  - supports optional multipart `file` to auto-upload and set `image`
 - `GET /api/posts/<pk>/`
 - `PUT /api/posts/<pk>/`
 - `PATCH /api/posts/<pk>/`
+  - `PUT`/`PATCH` support optional multipart `file` to auto-upload and update `image`
 - `DELETE /api/posts/<pk>/`
 - `GET /api/users/<user_id>/posts/`
 - `GET /api/users/<user_id>/liked-posts/`

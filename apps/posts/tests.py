@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -46,6 +47,32 @@ class PostTagAPITests(APITestCase):
             list(post.tags.values_list("name", flat=True)),
             ["python", "api"],
         )
+
+    def test_create_post_accepts_optional_file_and_sets_image_url(self):
+        image = SimpleUploadedFile("post.jpg", b"fake-image-content", content_type="image/jpeg")
+        payload = {
+            "name": "Post with uploaded image",
+            "content": "Body",
+            "file": image,
+        }
+
+        response = self.client.post(reverse("post-list-create"), payload, format="multipart")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("/media/uploads/", response.data["image"])
+
+    def test_patch_post_accepts_optional_file_and_updates_image_url(self):
+        post = Post.objects.create(author=self.user, name="First", content="Body")
+        image = SimpleUploadedFile("updated.jpg", b"fake-image-content", content_type="image/jpeg")
+
+        response = self.client.patch(
+            reverse("post-detail", kwargs={"pk": post.id}),
+            {"file": image},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("/media/uploads/", response.data["image"])
 
 
 class PostErrorHandlingTests(APITestCase):
