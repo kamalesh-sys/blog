@@ -123,6 +123,26 @@ class UserProfileFeatureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("/media/uploads/", response.data["profile_pic"])
 
+    def test_user_public_detail_is_accessible_without_auth(self):
+        response = self.client.get(
+            reverse("user-public-detail", kwargs={"user_id": self.user.id})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.user.id)
+        self.assertEqual(response.data["username"], self.user.username)
+        self.assertIn("followers_count", response.data)
+        self.assertIn("following_count", response.data)
+        self.assertNotIn("email", response.data)
+        self.assertNotIn("phone_no", response.data)
+
+    def test_user_public_detail_returns_not_found_for_invalid_user(self):
+        response = self.client.get(
+            reverse("user-public-detail", kwargs={"user_id": 999999})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class UserFollowFeatureTests(APITestCase):
     def setUp(self):

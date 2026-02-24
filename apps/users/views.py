@@ -11,6 +11,7 @@ from apps.common.image_utils import upload_image_file
 from .models import Follow
 from .serializers import (
     UserLoginSerializer,
+    UserPublicDetailSerializer,
     UserPublicSerializer,
     UserRegistrationSerializer,
     UserSerializer,
@@ -90,6 +91,15 @@ class CurrentUserAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class UserPublicDetailAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_id):
+        user = get_user_or_404(user_id)
+        serializer = UserPublicDetailSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class ImageUploadAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -121,13 +131,13 @@ class FollowToggleAPIView(APIView):
         )
         if created:
             return Response(
-                {"detail": "User followed.", "following": True},
+                {"detail": f"{request.user.username} followed {target_user.username}", "following": True},
                 status=status.HTTP_201_CREATED,
             )
 
         follow.delete()
         return Response(
-            {"detail": "User unfollowed.", "following": False},
+            {"detail": f"{request.user.username} unfollowed {target_user.username}", "following": False},
             status=status.HTTP_200_OK,
         )
 

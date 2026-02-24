@@ -52,6 +52,25 @@ class UserPublicSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "display_name", "profile_pic"]
 
 
+class UserPublicDetailSerializer(serializers.ModelSerializer):
+    followers_count = serializers.IntegerField(source="followers.count", read_only=True)
+    following_count = serializers.IntegerField(source="following.count", read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "display_name",
+            "bio",
+            "profile_pic",
+            "followers_count",
+            "following_count",
+        ]
+
+
 class FollowSerializer(serializers.ModelSerializer):
     follower = UserPublicSerializer(read_only=True)
     following = UserPublicSerializer(read_only=True)
