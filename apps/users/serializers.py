@@ -11,11 +11,13 @@ def validate_and_normalize_phone_no(value):
     clean_value = value.strip()
     if clean_value == "":
         return ""
-
-    only_digits = "".join(character for character in clean_value if character.isdigit())
+    only_digits = []
+    for c in clean_value:
+        if c.isdigit():
+            only_digits.append(c)
+    only_digits = "".join(only_digits)
     if len(only_digits) != 10:
         raise serializers.ValidationError("Phone number must be exactly 10 digits.")
-
     return only_digits
 
 
@@ -98,20 +100,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         errors = {}
+
         username = attrs.get("username", "").strip()
         email = attrs.get("email", "").strip().lower()
 
-        if username:
-            for existing_user in User.objects.all():
-                if (existing_user.username or "").lower() == username.lower():
-                    errors["username"] = ["A user with this username already exists."]
-                    break
+        if username and User.objects.filter(username__iexact=username).exists():
+            errors["username"] = ["A user with this username already exists."]
 
-        if email:
-            for existing_user in User.objects.all():
-                if (existing_user.email or "").lower() == email.lower():
-                    errors["email"] = ["A user with this email already exists."]
-                    break
+        if email and User.objects.filter(email__iexact=email).exists():
+            errors["email"] = ["A user with this email already exists."]
 
         if errors:
             raise serializers.ValidationError(errors)
