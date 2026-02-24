@@ -36,10 +36,6 @@ class Follow(models.Model):
                 fields=["follower", "following"],
                 name="unique_follow_relationship",
             ),
-            models.CheckConstraint(
-                condition=~models.Q(follower=models.F("following")),
-                name="prevent_self_follow",
-            ),
         ]
         indexes = [
             models.Index(fields=["follower"]),
