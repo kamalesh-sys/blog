@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -200,3 +201,71 @@ class UserFollowFeatureTests(APITestCase):
         Follow.objects.create(follower=self.user, following=self.target)
         with self.assertRaises(ValidationError):
             Follow.objects.create(follower=self.user, following=self.target)
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="no-reply@test.local",
+)
+class UserEmailNotificationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="email-user",
+            email="email-user@example.com",
+            password="strong-pass-123",
+        )
+        self.target = User.objects.create_user(
+            username="email-target",
+            email="email-target@example.com",
+            password="strong-pass-123",
+        )
+
+    def test_follow_sends_email_to_followed_user(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("follow-toggle", kwargs={"user_id": self.target.id})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.target.email])
+        self.assertIn("started following you", mail.outbox[0].subject)
+        self.assertIn(self.user.username, mail.outbox[0].body)
+
+    def test_profile_pic_update_sends_email_only_to_user_even_with_followers(self):
+        follower = User.objects.create_user(
+            username="follower-user",
+            email="follower-user@example.com",
+            password="strong-pass-123",
+        )
+        Follow.objects.create(follower=follower, following=self.user)
+        mail.outbox = []
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse("current-user"),
+            {"profile_pic": "https://example.com/new-profile.jpg"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertNotIn(follower.email, mail.outbox[0].to)
+        self.assertIn("updated profile picture", mail.outbox[0].subject)
+        self.assertIn(self.user.username, mail.outbox[0].body)
+
+    def test_profile_pic_update_sends_email_to_user_when_no_followers(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse("current-user"),
+            {"profile_pic": "https://example.com/self-only-profile.jpg"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertIn("updated profile picture", mail.outbox[0].subject)
+        self.assertIn(self.user.username, mail.outbox[0].body)

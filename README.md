@@ -8,6 +8,25 @@ python manage.py runserver
 Open: http://127.0.0.1:8000/
 API base: http://127.0.0.1:8000/api/
 
+## Email Notifications
+
+Email notifications are sent instantly for:
+- follow
+- like
+- comment
+- profile picture update
+
+```bash
+DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.yourprovider.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-username
+EMAIL_HOST_PASSWORD=your-password
+EMAIL_USE_TLS=true
+EMAIL_USE_SSL=false
+```
+
 ## Endpoints
 
 ### Auth

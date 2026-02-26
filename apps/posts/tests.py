@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
@@ -215,3 +216,57 @@ class PostQueryFeatureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["id"], self.post_1.id)
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="no-reply@test.local",
+)
+class PostEmailNotificationTests(APITestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(
+            username="post-author",
+            email="post-author@example.com",
+            password="strong-pass-123",
+        )
+        self.actor = User.objects.create_user(
+            username="post-actor",
+            email="post-actor@example.com",
+            password="strong-pass-123",
+        )
+        self.post = Post.objects.create(
+            author=self.author,
+            name="Signal test post",
+            content="Signal body",
+        )
+
+    def test_like_sends_email_to_post_author(self):
+        self.client.force_authenticate(user=self.actor)
+
+        response = self.client.post(
+            reverse("post-like-toggle", kwargs={"post_id": self.post.id})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.author.email])
+        self.assertIn("liked your post", mail.outbox[0].subject)
+        self.assertIn(self.actor.username, mail.outbox[0].body)
+
+    def test_comment_sends_email_to_post_author(self):
+        self.client.force_authenticate(user=self.actor)
+        comment_text = "Nice post!"
+
+        response = self.client.post(
+            reverse("post-comment-list-create", kwargs={"post_id": self.post.id}),
+            {"content": comment_text},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.author.email])
+        self.assertIn("commented on your post", mail.outbox[0].subject)
+        self.assertIn(self.actor.username, mail.outbox[0].body)
+        self.assertIn(self.post.name, mail.outbox[0].body)
+        self.assertIn(comment_text, mail.outbox[0].body)
