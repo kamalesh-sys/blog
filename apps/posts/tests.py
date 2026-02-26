@@ -241,6 +241,7 @@ class PostEmailNotificationTests(APITestCase):
         )
 
     def test_like_sends_email_to_post_author(self):
+        mail.outbox = []
         self.client.force_authenticate(user=self.actor)
 
         response = self.client.post(
@@ -254,6 +255,7 @@ class PostEmailNotificationTests(APITestCase):
         self.assertIn(self.actor.username, mail.outbox[0].body)
 
     def test_comment_sends_email_to_post_author(self):
+        mail.outbox = []
         self.client.force_authenticate(user=self.actor)
         comment_text = "Nice post!"
 
@@ -270,3 +272,60 @@ class PostEmailNotificationTests(APITestCase):
         self.assertIn(self.actor.username, mail.outbox[0].body)
         self.assertIn(self.post.name, mail.outbox[0].body)
         self.assertIn(comment_text, mail.outbox[0].body)
+
+    def test_new_post_sends_email_to_followers(self):
+        Follow.objects.create(follower=self.actor, following=self.author)
+        mail.outbox = []
+
+        Post.objects.create(
+            author=self.author,
+            name="Another signal test post",
+            content="Another body",
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.actor.email])
+        self.assertIn("published a new post", mail.outbox[0].subject)
+        self.assertIn("Another signal test post", mail.outbox[0].body)
+
+    def test_comment_sends_email_to_previous_commenters(self):
+        previous_commenter = User.objects.create_user(
+            username="previous-commenter",
+            email="previous-commenter@example.com",
+            password="strong-pass-123",
+        )
+
+        self.client.force_authenticate(user=previous_commenter)
+        self.client.post(
+            reverse("post-comment-list-create", kwargs={"post_id": self.post.id}),
+            {"content": "First comment"},
+            format="json",
+        )
+
+        mail.outbox = []
+
+        self.client.force_authenticate(user=self.actor)
+        response = self.client.post(
+            reverse("post-comment-list-create", kwargs={"post_id": self.post.id}),
+            {"content": "Second comment"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 2)
+
+        recipient_emails = [email.to[0] for email in mail.outbox]
+        self.assertCountEqual(
+            recipient_emails,
+            [self.author.email, previous_commenter.email],
+        )
+
+        email_subjects = [email.subject for email in mail.outbox]
+        self.assertIn(
+            f"{self.actor.username} commented on your post",
+            email_subjects,
+        )
+        self.assertIn(
+            f"{self.actor.username} commented on a post you commented on",
+            email_subjects,
+        )

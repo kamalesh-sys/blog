@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.email_notifications import send_activity_email
 from apps.common.image_utils import upload_image_file
 from .models import Follow
 from .serializers import (
@@ -54,6 +55,14 @@ class UserLoginAPIView(APIView):
         user = serializer.validated_data["user"]
 
         token, _ = Token.objects.get_or_create(user=user)
+
+        if user.email:
+            username_tag = f"@{user.username}"
+            send_activity_email(
+                subject="New login to your account",
+                message=f"Your account, {username_tag}, was logged in.",
+                recipient_list=[user.email],
+            )
 
         response_data = {"token": token.key}
         return Response(response_data, status=status.HTTP_200_OK)

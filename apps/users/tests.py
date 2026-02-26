@@ -233,6 +233,21 @@ class UserEmailNotificationTests(APITestCase):
         self.assertIn("started following you", mail.outbox[0].subject)
         self.assertIn(self.user.username, mail.outbox[0].body)
 
+    def test_login_sends_email_to_same_user(self):
+        mail.outbox = []
+
+        response = self.client.post(
+            reverse("user-login"),
+            {"username": self.user.username, "password": "strong-pass-123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertIn("New login to your account", mail.outbox[0].subject)
+        self.assertIn(self.user.username, mail.outbox[0].body)
+
     def test_profile_pic_update_sends_email_only_to_user_even_with_followers(self):
         follower = User.objects.create_user(
             username="follower-user",

@@ -28,31 +28,46 @@ def send_follow_email_notification(sender, instance, created, **kwargs):
         recipient_list=[recipient_email],
     )
 
+def has_profile_picture_changed(user):
+    is_new_user = user._state.adding or user.pk is None
+    if is_new_user:
+        return False
+
+    existing_user = User.objects.filter(pk=user.pk).values("profile_pic").first()
+    if existing_user:
+        previous_profile_picture = existing_user["profile_pic"]
+    else:
+        previous_profile_picture = None
+
+    if previous_profile_picture != user.profile_pic:
+        return True
+    return False
+
+
 @receiver(pre_save, sender=User)
 def mark_profile_pic_change(sender, instance, **kwargs):
-    instance._profile_pic_updated = False
+    profile_picture_changed = has_profile_picture_changed(instance)
 
-    if instance._state.adding or not instance.pk:
-        return
-
-    old_profile_pic = sender.objects.filter(pk=instance.pk).values_list("profile_pic", flat=True).first()
-    if old_profile_pic != instance.profile_pic:
-        instance._profile_pic_updated = True
-
+    if profile_picture_changed:
+        instance.profile_picture_updated = True
+    else:
+        instance.profile_picture_updated = False
+    
 @receiver(post_save, sender=User)
 def send_profile_pic_email_notification(sender, instance, created, **kwargs):
     if created:
         return
 
-    if not getattr(instance, "_profile_pic_updated", False):
+    profile_picture_updated = getattr(instance, "profile_picture_updated", False)
+    if not profile_picture_updated:
         return
 
     if not instance.email:
         return
 
-    user_name = get_display_text(instance)
+    username_tag = f"@{instance.username}"
     send_activity_email(
-        subject=f"{user_name} updated profile picture",
-        message=f"{user_name} updated profile picture.",
+        subject="Your account has an updated profile picture",
+        message=f"Your account, {username_tag}, has an updated profile picture.",
         recipient_list=[instance.email],
     )
