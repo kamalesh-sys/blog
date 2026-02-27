@@ -57,7 +57,14 @@ def send_post_comment_email_notification(sender, instance, created, **kwargs):
     if not created:
         return
 
+    post_author = instance.post.author
     commenter = instance.author
+    if post_author.id == commenter.id:
+        return
+
+    if not post_author.email:
+        return
+
     commenter_name = get_display_text(commenter)
     post_name = instance.post.name
     comment_text = (instance.content or "").strip()
@@ -65,38 +72,8 @@ def send_post_comment_email_notification(sender, instance, created, **kwargs):
     if comment_text:
         message += f'\n\nComment:\n"{comment_text}"'
 
-    notified_user_ids = set()
-
-    post_author = instance.post.author
-    if post_author.id != commenter.id and post_author.email:
-        send_activity_email(
-            subject=f"{commenter_name} commented on your post",
-            message=message,
-            recipient_list=[post_author.email],
-        )
-        notified_user_ids.add(post_author.id)
-
-    previous_commenters = (
-        Comment.objects.filter(post=instance.post)
-        .exclude(id=instance.id)
-        .exclude(author_id=commenter.id)
-        .values("author_id", "author__email")
-        .distinct()
+    send_activity_email(
+        subject=f"{commenter_name} commented on your post",
+        message=message,
+        recipient_list=[post_author.email],
     )
-
-    for previous_commenter in previous_commenters:
-        commenter_id = previous_commenter["author_id"]
-        commenter_email = previous_commenter["author__email"]
-
-        if commenter_id in notified_user_ids:
-            continue
-
-        if not commenter_email:
-            continue
-
-        send_activity_email(
-            subject=f"{commenter_name} commented on a post you commented on",
-            message=message,
-            recipient_list=[commenter_email],
-        )
-        notified_user_ids.add(commenter_id)

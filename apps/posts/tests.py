@@ -288,7 +288,7 @@ class PostEmailNotificationTests(APITestCase):
         self.assertIn("published a new post", mail.outbox[0].subject)
         self.assertIn("Another signal test post", mail.outbox[0].body)
 
-    def test_comment_sends_email_to_previous_commenters(self):
+    def test_comment_sends_email_only_to_post_author(self):
         previous_commenter = User.objects.create_user(
             username="previous-commenter",
             email="previous-commenter@example.com",
@@ -312,20 +312,9 @@ class PostEmailNotificationTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(len(mail.outbox), 2)
-
-        recipient_emails = [email.to[0] for email in mail.outbox]
-        self.assertCountEqual(
-            recipient_emails,
-            [self.author.email, previous_commenter.email],
-        )
-
-        email_subjects = [email.subject for email in mail.outbox]
-        self.assertIn(
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.author.email])
+        self.assertEqual(
+            mail.outbox[0].subject,
             f"{self.actor.username} commented on your post",
-            email_subjects,
-        )
-        self.assertIn(
-            f"{self.actor.username} commented on a post you commented on",
-            email_subjects,
         )
