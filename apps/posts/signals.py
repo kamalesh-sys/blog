@@ -19,6 +19,10 @@ def send_new_post_email_notification(sender, instance, created, **kwargs):
     author = instance.author
     author_name = get_display_text(author)
     post_name = instance.name
+    post_content = (instance.content or "").strip()
+    message = f'{author_name} published a new post: "{post_name}".'
+    if post_content:
+        message += f'\n\nPost content:\n"{post_content}"'
 
     follower_emails = author.followers.values_list("email", flat=True)
     for follower_email in follower_emails:
@@ -27,7 +31,7 @@ def send_new_post_email_notification(sender, instance, created, **kwargs):
 
         send_activity_email(
             subject=f"{author_name} published a new post",
-            message=f'{author_name} published a new post: "{post_name}".',
+            message=message,
             recipient_list=[follower_email],
         )
 
