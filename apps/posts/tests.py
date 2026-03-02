@@ -287,6 +287,7 @@ class PostEmailNotificationTests(APITestCase):
         self.assertEqual(mail.outbox[0].to, [self.actor.email])
         self.assertIn("published a new post", mail.outbox[0].subject)
         self.assertIn("Another signal test post", mail.outbox[0].body)
+        self.assertIn("Another body", mail.outbox[0].body)
 
     def test_comment_sends_email_only_to_post_author(self):
         previous_commenter = User.objects.create_user(

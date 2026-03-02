@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
-from rest_framework import status
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -25,6 +26,74 @@ def get_post_with_author_and_tags_or_404(post_id):
     return post
 
 
+PostWriteSerializer = inline_serializer(
+    name="PostWriteRequest",
+    fields={
+        "name": serializers.CharField(required=True),
+        "content": serializers.CharField(required=True),
+        "category": serializers.CharField(required=False, allow_blank=True),
+        "image": serializers.CharField(
+            required=False,
+            allow_blank=True,
+            help_text="URL of an existing image. Ignored if 'file' is provided.",
+        ),
+        "file": serializers.ImageField(
+            required=False,
+            help_text="Image file to upload (multipart/form-data). Automatically sets the image URL.",
+        ),
+        "tag_names": serializers.ListField(
+            child=serializers.CharField(max_length=50),
+            required=False,
+            help_text="List of tag names to attach to the post.",
+        ),
+    },
+)
+
+CommentWriteSerializer = inline_serializer(
+    name="CommentWriteRequest",
+    fields={
+        "content": serializers.CharField(required=True),
+    },
+)
+
+LikeToggleResponseSerializer = inline_serializer(
+    name="LikeToggleResponse",
+    fields={
+        "detail": serializers.CharField(),
+        "liked": serializers.BooleanField(),
+    },
+)
+
+DeleteResponseSerializer = inline_serializer(
+    name="DeleteResponse",
+    fields={
+        "detail": serializers.CharField(),
+    },
+)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List posts",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("search", str, OpenApiParameter.QUERY, description="Search in content and tags"),
+            OpenApiParameter("category", str, OpenApiParameter.QUERY, description="Filter by exact category"),
+        ],
+        responses={200: PostSerializer(many=True)},
+        auth=[],
+    ),
+    post=extend_schema(
+        summary="Create post",
+        tags=["Posts"],
+        request=PostWriteSerializer,
+        responses={
+            201: PostSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    ),
+)
 class PostListCreateAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -73,6 +142,61 @@ class PostListCreateAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Retrieve post by id",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        responses={
+            200: PostSerializer,
+            404: OpenApiResponse(description="Post not found"),
+        },
+        auth=[],
+    ),
+    put=extend_schema(
+        summary="Replace post",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        request=PostWriteSerializer,
+        responses={
+            200: PostSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Only the owner can edit this post"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    ),
+    patch=extend_schema(
+        summary="Partially update post",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        request=PostWriteSerializer,
+        responses={
+            200: PostSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Only the owner can edit this post"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    ),
+    delete=extend_schema(
+        summary="Delete post",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        responses={
+            200: DeleteResponseSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Only the owner can delete this post"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    ),
+)
 class PostRetrieveUpdateDestroyAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -125,6 +249,20 @@ class PostRetrieveUpdateDestroyAPIView(APIView):
         raise PermissionDenied("Only the owner can delete this post.")
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List posts by user",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="User id"),
+        ],
+        responses={
+            200: PostSerializer(many=True),
+            404: OpenApiResponse(description="User not found"),
+        },
+        auth=[],
+    )
+)
 class UserPostListAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -141,6 +279,20 @@ class UserPostListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List posts liked by user",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="User id"),
+        ],
+        responses={
+            200: PostSerializer(many=True),
+            404: OpenApiResponse(description="User not found"),
+        },
+        auth=[],
+    )
+)
 class UserLikedPostListAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -164,6 +316,17 @@ class UserLikedPostListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List posts from followed users",
+        description="Returns all posts authored by users that the authenticated user is following, ordered by recency.",
+        tags=["Posts"],
+        responses={
+            200: PostSerializer(many=True),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    )
+)
 class FollowingPostListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -180,6 +343,34 @@ class FollowingPostListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List comments for a post",
+        tags=["Comments"],
+        parameters=[
+            OpenApiParameter("post_id", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        responses={
+            200: CommentSerializer(many=True),
+            404: OpenApiResponse(description="Post not found"),
+        },
+        auth=[],
+    ),
+    post=extend_schema(
+        summary="Create comment for a post",
+        tags=["Comments"],
+        parameters=[
+            OpenApiParameter("post_id", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        request=CommentWriteSerializer,
+        responses={
+            201: CommentSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    ),
+)
 class PostCommentListCreateAPIView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -197,6 +388,23 @@ class PostCommentListCreateAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        summary="Like or unlike a post",
+        description="Toggles the like state for the authenticated user. Returns 201 when the post is liked, 200 when it is unliked.",
+        tags=["Posts"],
+        request=None,
+        parameters=[
+            OpenApiParameter("post_id", int, OpenApiParameter.PATH, description="Post id"),
+        ],
+        responses={
+            200: LikeToggleResponseSerializer,
+            201: LikeToggleResponseSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    )
+)
 class PostLikeToggleAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -1,0 +1,1156 @@
+openapi: 3.0.3
+info:
+  title: Blog API
+  version: 1.0.0
+  description: OpenAPI schema for the Blog backend APIs.
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: 'Authenticates with username and password. Returns an auth token
+        to include in subsequent requests as: `Authorization: Token <token>`.'
+      summary: Login user
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+          description: ''
+        '400':
+          description: Invalid credentials or missing fields
+  /api/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      summary: Get current authenticated user
+      tags:
+      - Users
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          description: Authentication required
+    put:
+      operationId: auth_me_update
+      summary: Replace current user profile
+      tags:
+      - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserWriteRequestRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          description: Validation error
+        '401':
+          description: Authentication required
+    patch:
+      operationId: auth_me_partial_update
+      summary: Partially update current user profile
+      tags:
+      - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          description: Validation error
+        '401':
+          description: Authentication required
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Creates a new user account and returns the user profile along with
+        an auth token.
+      summary: Register a new user
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistrationResponse'
+          description: ''
+        '400':
+          description: Validation error
+  /api/posts/:
+    get:
+      operationId: posts_list
+      summary: List posts
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Filter by exact category
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search in content and tags
+      tags:
+      - Posts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+          description: ''
+    post:
+      operationId: posts_create
+      summary: Create post
+      tags:
+      - Posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '400':
+          description: Validation error
+        '401':
+          description: Authentication required
+  /api/posts/{id}/:
+    get:
+      operationId: posts_retrieve
+      summary: Retrieve post by id
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: pk
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Posts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '404':
+          description: Post not found
+    put:
+      operationId: posts_update
+      summary: Replace post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: pk
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostWriteRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '401':
+          description: Authentication required
+        '403':
+          description: Only the owner can edit this post
+        '404':
+          description: Post not found
+    patch:
+      operationId: posts_partial_update
+      summary: Partially update post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: pk
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '401':
+          description: Authentication required
+        '403':
+          description: Only the owner can edit this post
+        '404':
+          description: Post not found
+    delete:
+      operationId: posts_destroy
+      summary: Delete post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: pk
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Posts
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+          description: ''
+        '401':
+          description: Authentication required
+        '403':
+          description: Only the owner can delete this post
+        '404':
+          description: Post not found
+  /api/posts/{post_id}/comments/:
+    get:
+      operationId: posts_comments_list
+      summary: List comments for a post
+      parameters:
+      - in: path
+        name: post_id
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Comments
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+          description: ''
+        '404':
+          description: Post not found
+    post:
+      operationId: posts_comments_create
+      summary: Create comment for a post
+      parameters:
+      - in: path
+        name: post_id
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+        '400':
+          description: Validation error
+        '401':
+          description: Authentication required
+        '404':
+          description: Post not found
+  /api/posts/{post_id}/like/:
+    post:
+      operationId: posts_like_create
+      description: Toggles the like state for the authenticated user. Returns 201
+        when the post is liked, 200 when it is unliked.
+      summary: Like or unlike a post
+      parameters:
+      - in: path
+        name: post_id
+        schema:
+          type: integer
+        description: Post id
+        required: true
+      tags:
+      - Posts
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeToggleResponse'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeToggleResponse'
+          description: ''
+        '401':
+          description: Authentication required
+        '404':
+          description: Post not found
+  /api/posts/following/:
+    get:
+      operationId: posts_following_list
+      description: Returns all posts authored by users that the authenticated user
+        is following, ordered by recency.
+      summary: List posts from followed users
+      tags:
+      - Posts
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+          description: ''
+        '401':
+          description: Authentication required
+  /api/uploads/image/:
+    post:
+      operationId: uploads_image_create
+      summary: Upload an image
+      tags:
+      - Uploads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageUploadResponse'
+          description: ''
+        '400':
+          description: Invalid image upload request
+        '401':
+          description: Authentication required
+  /api/users/{user_id}/:
+    get:
+      operationId: users_retrieve
+      summary: Get public profile by user id
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: User id
+        required: true
+      tags:
+      - Users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicDetail'
+          description: ''
+        '404':
+          description: User not found
+  /api/users/{user_id}/follow/:
+    post:
+      operationId: users_follow_create
+      description: Toggles the follow state for the target user. Returns 201 when
+        the user is followed, 200 when unfollowed.
+      summary: Follow or unfollow a user
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: Target user id
+        required: true
+      tags:
+      - Follows
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowToggleResponse'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowToggleResponse'
+          description: ''
+        '400':
+          description: Cannot follow yourself
+        '401':
+          description: Authentication required
+        '404':
+          description: User not found
+  /api/users/{user_id}/followers/:
+    get:
+      operationId: users_followers_list
+      summary: List followers of a user
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: User id
+        required: true
+      tags:
+      - Follows
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserPublic'
+          description: ''
+        '401':
+          description: Authentication required
+        '404':
+          description: User not found
+  /api/users/{user_id}/following/:
+    get:
+      operationId: users_following_list
+      summary: List users followed by a user
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: User id
+        required: true
+      tags:
+      - Follows
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserPublic'
+          description: ''
+        '401':
+          description: Authentication required
+        '404':
+          description: User not found
+  /api/users/{user_id}/liked-posts/:
+    get:
+      operationId: users_liked_posts_list
+      summary: List posts liked by user
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: User id
+        required: true
+      tags:
+      - Posts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+          description: ''
+        '404':
+          description: User not found
+  /api/users/{user_id}/posts/:
+    get:
+      operationId: users_posts_list
+      summary: List posts by user
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        description: User id
+        required: true
+      tags:
+      - Posts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+          description: ''
+        '404':
+          description: User not found
+components:
+  schemas:
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        post:
+          type: integer
+          readOnly: true
+        author:
+          type: integer
+          readOnly: true
+        author_username:
+          type: string
+          readOnly: true
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - author_username
+      - content
+      - created_at
+      - id
+      - post
+      - updated_at
+    CommentWriteRequestRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+      required:
+      - content
+    DeleteResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    FollowToggleResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        following:
+          type: boolean
+      required:
+      - detail
+      - following
+    ImageUploadRequestRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+      required:
+      - file
+    ImageUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+      - url
+    LikeToggleResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        liked:
+          type: boolean
+      required:
+      - detail
+      - liked
+    PatchedPostWriteRequestRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        image:
+          type: string
+          description: URL of an existing image. Ignored if 'file' is provided.
+        file:
+          type: string
+          format: binary
+          description: Image file to upload (multipart/form-data). Automatically sets
+            the image URL.
+        tag_names:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          description: List of tag names to attach to the post.
+    PatchedUserWriteRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        bio:
+          type: string
+        phone_no:
+          type: string
+        dob:
+          type: string
+          format: date
+        file:
+          type: string
+          format: binary
+          description: Profile picture to upload (multipart/form-data). Automatically
+            sets profile_pic URL.
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        content:
+          type: string
+        image:
+          type: string
+          format: uri
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 80
+        author:
+          type: integer
+          readOnly: true
+        author_username:
+          type: string
+          readOnly: true
+        likes_count:
+          type: integer
+          readOnly: true
+        comments_count:
+          type: integer
+          readOnly: true
+        tags:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - author_username
+      - comments_count
+      - content
+      - created_at
+      - id
+      - likes_count
+      - name
+      - tags
+      - updated_at
+    PostWriteRequestRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        image:
+          type: string
+          description: URL of an existing image. Ignored if 'file' is provided.
+        file:
+          type: string
+          format: binary
+          description: Image file to upload (multipart/form-data). Automatically sets
+            the image URL.
+        tag_names:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          description: List of tag names to attach to the post.
+      required:
+      - content
+      - name
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        display_name:
+          type: string
+          maxLength: 120
+        bio:
+          type: string
+        phone_no:
+          type: string
+          maxLength: 20
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
+        dob:
+          type: string
+          format: date
+          nullable: true
+        followers_count:
+          type: integer
+          readOnly: true
+        following_count:
+          type: integer
+          readOnly: true
+      required:
+      - email
+      - followers_count
+      - following_count
+      - id
+      - username
+    UserLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        display_name:
+          type: string
+          maxLength: 120
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
+      required:
+      - id
+      - username
+    UserPublicDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        display_name:
+          type: string
+          maxLength: 120
+        bio:
+          type: string
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
+        followers_count:
+          type: integer
+          readOnly: true
+        following_count:
+          type: integer
+          readOnly: true
+      required:
+      - followers_count
+      - following_count
+      - id
+      - username
+    UserRegistrationRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        display_name:
+          type: string
+          maxLength: 120
+        bio:
+          type: string
+        phone_no:
+          type: string
+          maxLength: 20
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
+        dob:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - email
+      - password
+      - username
+    UserRegistrationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        bio:
+          type: string
+        phone_no:
+          type: string
+        profile_pic:
+          type: string
+        dob:
+          type: string
+          format: date
+        followers_count:
+          type: integer
+        following_count:
+          type: integer
+        token:
+          type: string
+          description: 'Auth token to use in the Authorization header as: Token <token>'
+      required:
+      - bio
+      - display_name
+      - dob
+      - email
+      - first_name
+      - followers_count
+      - following_count
+      - id
+      - last_name
+      - phone_no
+      - profile_pic
+      - token
+      - username
+    UserWriteRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        bio:
+          type: string
+        phone_no:
+          type: string
+        dob:
+          type: string
+          format: date
+        file:
+          type: string
+          format: binary
+          description: Profile picture to upload (multipart/form-data). Automatically
+            sets profile_pic URL.
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

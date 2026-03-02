@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from rest_framework import status
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -29,6 +30,86 @@ def get_user_or_404(user_id):
     return user
 
 
+TokenResponseSerializer = inline_serializer(
+    name="TokenResponse",
+    fields={
+        "token": serializers.CharField(),
+    },
+)
+
+ImageUploadRequestSerializer = inline_serializer(
+    name="ImageUploadRequest",
+    fields={
+        "file": serializers.ImageField(required=True),
+    },
+)
+
+ImageUploadResponseSerializer = inline_serializer(
+    name="ImageUploadResponse",
+    fields={
+        "url": serializers.CharField(),
+    },
+)
+
+FollowToggleResponseSerializer = inline_serializer(
+    name="FollowToggleResponse",
+    fields={
+        "detail": serializers.CharField(),
+        "following": serializers.BooleanField(),
+    },
+)
+
+UserRegistrationResponseSerializer = inline_serializer(
+    name="UserRegistrationResponse",
+    fields={
+        "id": serializers.IntegerField(),
+        "username": serializers.CharField(),
+        "email": serializers.EmailField(),
+        "first_name": serializers.CharField(),
+        "last_name": serializers.CharField(),
+        "display_name": serializers.CharField(),
+        "bio": serializers.CharField(),
+        "phone_no": serializers.CharField(),
+        "profile_pic": serializers.CharField(),
+        "dob": serializers.DateField(),
+        "followers_count": serializers.IntegerField(),
+        "following_count": serializers.IntegerField(),
+        "token": serializers.CharField(help_text="Auth token to use in the Authorization header as: Token <token>"),
+    },
+)
+
+UserWriteRequestSerializer = inline_serializer(
+    name="UserWriteRequest",
+    fields={
+        "username": serializers.CharField(required=False),
+        "email": serializers.EmailField(required=False),
+        "first_name": serializers.CharField(required=False, allow_blank=True),
+        "last_name": serializers.CharField(required=False, allow_blank=True),
+        "display_name": serializers.CharField(required=False, allow_blank=True),
+        "bio": serializers.CharField(required=False, allow_blank=True),
+        "phone_no": serializers.CharField(required=False, allow_blank=True),
+        "dob": serializers.DateField(required=False),
+        "file": serializers.ImageField(
+            required=False,
+            help_text="Profile picture to upload (multipart/form-data). Automatically sets profile_pic URL.",
+        ),
+    },
+)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        summary="Register a new user",
+        description="Creates a new user account and returns the user profile along with an auth token.",
+        tags=["Auth"],
+        request=UserRegistrationSerializer,
+        responses={
+            201: UserRegistrationResponseSerializer,
+            400: OpenApiResponse(description="Validation error"),
+        },
+        auth=[],
+    )
+)
 class UserRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -46,6 +127,19 @@ class UserRegistrationAPIView(APIView):
         return Response(user_data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        summary="Login user",
+        description="Authenticates with username and password. Returns an auth token to include in subsequent requests as: `Authorization: Token <token>`.",
+        tags=["Auth"],
+        request=UserLoginSerializer,
+        responses={
+            200: TokenResponseSerializer,
+            400: OpenApiResponse(description="Invalid credentials or missing fields"),
+        },
+        auth=[],
+    )
+)
 class UserLoginAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -68,6 +162,36 @@ class UserLoginAPIView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get current authenticated user",
+        tags=["Users"],
+        responses={
+            200: UserSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    ),
+    put=extend_schema(
+        summary="Replace current user profile",
+        tags=["Users"],
+        request=UserWriteRequestSerializer,
+        responses={
+            200: UserSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    ),
+    patch=extend_schema(
+        summary="Partially update current user profile",
+        tags=["Users"],
+        request=UserWriteRequestSerializer,
+        responses={
+            200: UserSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    ),
+)
 class CurrentUserAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -100,6 +224,20 @@ class CurrentUserAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get public profile by user id",
+        tags=["Users"],
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="User id"),
+        ],
+        responses={
+            200: UserPublicDetailSerializer,
+            404: OpenApiResponse(description="User not found"),
+        },
+        auth=[],
+    )
+)
 class UserPublicDetailAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -109,6 +247,18 @@ class UserPublicDetailAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        summary="Upload an image",
+        tags=["Uploads"],
+        request=ImageUploadRequestSerializer,
+        responses={
+            201: ImageUploadResponseSerializer,
+            400: OpenApiResponse(description="Invalid image upload request"),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+    )
+)
 class ImageUploadAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -122,6 +272,24 @@ class ImageUploadAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        summary="Follow or unfollow a user",
+        description="Toggles the follow state for the target user. Returns 201 when the user is followed, 200 when unfollowed.",
+        tags=["Follows"],
+        request=None,
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="Target user id"),
+        ],
+        responses={
+            200: FollowToggleResponseSerializer,
+            201: FollowToggleResponseSerializer,
+            400: OpenApiResponse(description="Cannot follow yourself"),
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="User not found"),
+        },
+    )
+)
 class FollowToggleAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -151,6 +319,20 @@ class FollowToggleAPIView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List followers of a user",
+        tags=["Follows"],
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="User id"),
+        ],
+        responses={
+            200: UserPublicSerializer(many=True),
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="User not found"),
+        },
+    )
+)
 class UserFollowerListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -160,6 +342,20 @@ class UserFollowerListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List users followed by a user",
+        tags=["Follows"],
+        parameters=[
+            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="User id"),
+        ],
+        responses={
+            200: UserPublicSerializer(many=True),
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="User not found"),
+        },
+    )
+)
 class UserFollowingListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
