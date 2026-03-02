@@ -1,4 +1,4 @@
-## Run
+﻿## Run
 
 ```bash
 python manage.py migrate
@@ -8,13 +8,31 @@ python manage.py runserver
 Open: http://127.0.0.1:8000/
 API base: http://127.0.0.1:8000/api/
 
+## Swagger / OpenAPI Docs
+
+Interactive API documentation is exposed via `drf-spectacular`:
+
+- Schema: `GET /api/schema/`
+- Swagger UI: `GET /api/docs/swagger/`
+- ReDoc: `GET /api/docs/redoc/`
+
+Generate or refresh the schema artifact:
+
+```bash
+python manage.py spectacular --file schema.yml --validate
+```
+
+For authenticated endpoints in Swagger UI, use:
+`Token <your_auth_token>`
+
 ## Email Notifications
 
 Email notifications are sent instantly for:
 - follow
 - like
-- comment
+- comment.
 - profile picture update
+- login.
 
 ```bash
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
