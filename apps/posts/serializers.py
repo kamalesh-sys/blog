@@ -112,3 +112,12 @@ class CommentSerializer(serializers.ModelSerializer):
         if clean_value == "":
             raise serializers.ValidationError("Comment content cannot be empty.")
         return clean_value
+
+
+class DetailResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+class PostLikeToggleResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    liked = serializers.BooleanField()

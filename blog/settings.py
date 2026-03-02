@@ -132,7 +132,6 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -144,6 +143,13 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Blog API',
     'DESCRIPTION': 'OpenAPI schema for the Blog backend APIs.',
     'VERSION': '1.0.0',
+    'CONTACT': {
+        'name': 'Blog API Support',
+        'email': 'support@blog.local',
+    },
+    'LICENSE': {
+        'name': 'Proprietary',
+    },
     'SERVE_INCLUDE_SCHEMA': False,
     'SCHEMA_PATH_PREFIX': r'/api',
     'COMPONENT_SPLIT_REQUEST': True,
@@ -151,8 +157,8 @@ SPECTACULAR_SETTINGS = {
         'persistAuthorization': True,
         'displayRequestDuration': True,
     },
-    'SECURITY': [
-        {'tokenAuth': []},
+    'AUTHENTICATION_WHITELIST': [
+        'rest_framework.authentication.TokenAuthentication',
     ],
 }
 

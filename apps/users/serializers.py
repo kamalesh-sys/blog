@@ -1,9 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 
-from .models import Follow
-
-
 User = get_user_model()
 
 
@@ -69,15 +66,6 @@ class UserPublicDetailSerializer(serializers.ModelSerializer):
             "followers_count",
             "following_count",
         ]
-
-
-class FollowSerializer(serializers.ModelSerializer):
-    follower = UserPublicSerializer(read_only=True)
-    following = UserPublicSerializer(read_only=True)
-
-    class Meta:
-        model = Follow
-        fields = ["id", "follower", "following", "created_at"]
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -189,3 +177,30 @@ class UserLoginSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class TokenSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+
+class UserWithTokenSerializer(UserSerializer):
+    token = serializers.CharField(
+        read_only=True,
+        help_text='Auth token to use in the Authorization header as: Token <token>',
+    )
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["token"]
+
+
+class ImageUploadRequestSerializer(serializers.Serializer):
+    file = serializers.ImageField(required=True)
+
+
+class ImageUploadResponseSerializer(serializers.Serializer):
+    url = serializers.CharField()
+
+
+class FollowToggleResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    following = serializers.BooleanField()

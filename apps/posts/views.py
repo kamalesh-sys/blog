@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
-from rest_framework import serializers, status
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -8,7 +8,12 @@ from rest_framework.views import APIView
 
 from apps.common.image_utils import upload_image_file
 from .models import Comment, Post, PostLike
-from .serializers import CommentSerializer, PostSerializer
+from .serializers import (
+    CommentSerializer,
+    DetailResponseSerializer,
+    PostLikeToggleResponseSerializer,
+    PostSerializer,
+)
 
 
 User = get_user_model()
@@ -26,52 +31,6 @@ def get_post_with_author_and_tags_or_404(post_id):
     return post
 
 
-PostWriteSerializer = inline_serializer(
-    name="PostWriteRequest",
-    fields={
-        "name": serializers.CharField(required=True),
-        "content": serializers.CharField(required=True),
-        "category": serializers.CharField(required=False, allow_blank=True),
-        "image": serializers.CharField(
-            required=False,
-            allow_blank=True,
-            help_text="URL of an existing image. Ignored if 'file' is provided.",
-        ),
-        "file": serializers.ImageField(
-            required=False,
-            help_text="Image file to upload (multipart/form-data). Automatically sets the image URL.",
-        ),
-        "tag_names": serializers.ListField(
-            child=serializers.CharField(max_length=50),
-            required=False,
-            help_text="List of tag names to attach to the post.",
-        ),
-    },
-)
-
-CommentWriteSerializer = inline_serializer(
-    name="CommentWriteRequest",
-    fields={
-        "content": serializers.CharField(required=True),
-    },
-)
-
-LikeToggleResponseSerializer = inline_serializer(
-    name="LikeToggleResponse",
-    fields={
-        "detail": serializers.CharField(),
-        "liked": serializers.BooleanField(),
-    },
-)
-
-DeleteResponseSerializer = inline_serializer(
-    name="DeleteResponse",
-    fields={
-        "detail": serializers.CharField(),
-    },
-)
-
-
 @extend_schema_view(
     get=extend_schema(
         summary="List posts",
@@ -86,7 +45,7 @@ DeleteResponseSerializer = inline_serializer(
     post=extend_schema(
         summary="Create post",
         tags=["Posts"],
-        request=PostWriteSerializer,
+        request=PostSerializer,
         responses={
             201: PostSerializer,
             400: OpenApiResponse(description="Validation error"),
@@ -146,9 +105,6 @@ class PostListCreateAPIView(APIView):
     get=extend_schema(
         summary="Retrieve post by id",
         tags=["Posts"],
-        parameters=[
-            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
-        ],
         responses={
             200: PostSerializer,
             404: OpenApiResponse(description="Post not found"),
@@ -158,10 +114,7 @@ class PostListCreateAPIView(APIView):
     put=extend_schema(
         summary="Replace post",
         tags=["Posts"],
-        parameters=[
-            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
-        ],
-        request=PostWriteSerializer,
+        request=PostSerializer,
         responses={
             200: PostSerializer,
             401: OpenApiResponse(description="Authentication required"),
@@ -172,10 +125,7 @@ class PostListCreateAPIView(APIView):
     patch=extend_schema(
         summary="Partially update post",
         tags=["Posts"],
-        parameters=[
-            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
-        ],
-        request=PostWriteSerializer,
+        request=PostSerializer,
         responses={
             200: PostSerializer,
             401: OpenApiResponse(description="Authentication required"),
@@ -186,11 +136,8 @@ class PostListCreateAPIView(APIView):
     delete=extend_schema(
         summary="Delete post",
         tags=["Posts"],
-        parameters=[
-            OpenApiParameter("pk", int, OpenApiParameter.PATH, description="Post id"),
-        ],
         responses={
-            200: DeleteResponseSerializer,
+            200: DetailResponseSerializer,
             401: OpenApiResponse(description="Authentication required"),
             403: OpenApiResponse(description="Only the owner can delete this post"),
             404: OpenApiResponse(description="Post not found"),
@@ -362,7 +309,7 @@ class FollowingPostListAPIView(APIView):
         parameters=[
             OpenApiParameter("post_id", int, OpenApiParameter.PATH, description="Post id"),
         ],
-        request=CommentWriteSerializer,
+        request=CommentSerializer,
         responses={
             201: CommentSerializer,
             400: OpenApiResponse(description="Validation error"),
@@ -398,8 +345,8 @@ class PostCommentListCreateAPIView(APIView):
             OpenApiParameter("post_id", int, OpenApiParameter.PATH, description="Post id"),
         ],
         responses={
-            200: LikeToggleResponseSerializer,
-            201: LikeToggleResponseSerializer,
+            200: PostLikeToggleResponseSerializer,
+            201: PostLikeToggleResponseSerializer,
             401: OpenApiResponse(description="Authentication required"),
             404: OpenApiResponse(description="Post not found"),
         },

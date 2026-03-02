@@ -3,6 +3,11 @@ info:
   title: Blog API
   version: 1.0.0
   description: OpenAPI schema for the Blog backend APIs.
+  contact:
+    name: Blog API Support
+    email: support@blog.local
+  license:
+    name: Proprietary
 paths:
   /api/auth/login/:
     post:
@@ -29,7 +34,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenResponse'
+                $ref: '#/components/schemas/Token'
           description: ''
         '400':
           description: Invalid credentials or missing fields
@@ -40,8 +45,6 @@ paths:
       tags:
       - Users
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -61,16 +64,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserWriteRequestRequest'
+              $ref: '#/components/schemas/UserRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/UserWriteRequestRequest'
+              $ref: '#/components/schemas/UserRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UserWriteRequestRequest'
+              $ref: '#/components/schemas/UserRequest'
+        required: true
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -92,16 +94,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedUserRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedUserRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedUserWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedUserRequest'
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -139,7 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserRegistrationResponse'
+                $ref: '#/components/schemas/UserWithToken'
           description: ''
         '400':
           description: Validation error
@@ -178,17 +178,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
         required: true
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '201':
@@ -211,12 +209,6 @@ paths:
         schema:
           type: integer
         required: true
-      - in: path
-        name: pk
-        schema:
-          type: integer
-        description: Post id
-        required: true
       tags:
       - Posts
       responses:
@@ -237,29 +229,21 @@ paths:
         schema:
           type: integer
         required: true
-      - in: path
-        name: pk
-        schema:
-          type: integer
-        description: Post id
-        required: true
       tags:
       - Posts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PostWriteRequestRequest'
+              $ref: '#/components/schemas/PostRequest'
         required: true
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -283,28 +267,20 @@ paths:
         schema:
           type: integer
         required: true
-      - in: path
-        name: pk
-        schema:
-          type: integer
-        description: Post id
-        required: true
       tags:
       - Posts
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedPostRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedPostRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedPostWriteRequestRequest'
+              $ref: '#/components/schemas/PatchedPostRequest'
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -328,24 +304,16 @@ paths:
         schema:
           type: integer
         required: true
-      - in: path
-        name: pk
-        schema:
-          type: integer
-        description: Post id
-        required: true
       tags:
       - Posts
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteResponse'
+                $ref: '#/components/schemas/DetailResponse'
           description: ''
         '401':
           description: Authentication required
@@ -393,17 +361,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommentWriteRequestRequest'
+              $ref: '#/components/schemas/CommentRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CommentWriteRequestRequest'
+              $ref: '#/components/schemas/CommentRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CommentWriteRequestRequest'
+              $ref: '#/components/schemas/CommentRequest'
         required: true
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '201':
@@ -435,20 +401,18 @@ paths:
       - Posts
       security:
       - tokenAuth: []
-      - cookieAuth: []
-      - tokenAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LikeToggleResponse'
+                $ref: '#/components/schemas/PostLikeToggleResponse'
           description: ''
         '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LikeToggleResponse'
+                $ref: '#/components/schemas/PostLikeToggleResponse'
           description: ''
         '401':
           description: Authentication required
@@ -463,8 +427,6 @@ paths:
       tags:
       - Posts
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -496,8 +458,6 @@ paths:
               $ref: '#/components/schemas/ImageUploadRequestRequest'
         required: true
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '201':
@@ -549,8 +509,6 @@ paths:
       - Follows
       security:
       - tokenAuth: []
-      - cookieAuth: []
-      - tokenAuth: []
       responses:
         '200':
           content:
@@ -585,8 +543,6 @@ paths:
       - Follows
       security:
       - tokenAuth: []
-      - cookieAuth: []
-      - tokenAuth: []
       responses:
         '200':
           content:
@@ -614,8 +570,6 @@ paths:
       tags:
       - Follows
       security:
-      - tokenAuth: []
-      - cookieAuth: []
       - tokenAuth: []
       responses:
         '200':
@@ -713,7 +667,7 @@ components:
       - id
       - post
       - updated_at
-    CommentWriteRequestRequest:
+    CommentRequest:
       type: object
       properties:
         content:
@@ -721,7 +675,7 @@ components:
           minLength: 1
       required:
       - content
-    DeleteResponse:
+    DetailResponse:
       type: object
       properties:
         detail:
@@ -753,70 +707,67 @@ components:
           type: string
       required:
       - url
-    LikeToggleResponse:
-      type: object
-      properties:
-        detail:
-          type: string
-        liked:
-          type: boolean
-      required:
-      - detail
-      - liked
-    PatchedPostWriteRequestRequest:
+    PatchedPostRequest:
       type: object
       properties:
         name:
           type: string
           minLength: 1
+          maxLength: 150
         content:
           type: string
           minLength: 1
-        category:
-          type: string
         image:
           type: string
-          description: URL of an existing image. Ignored if 'file' is provided.
-        file:
+          format: uri
+          maxLength: 200
+        category:
           type: string
-          format: binary
-          description: Image file to upload (multipart/form-data). Automatically sets
-            the image URL.
+          maxLength: 80
         tag_names:
           type: array
           items:
             type: string
             minLength: 1
             maxLength: 50
-          description: List of tag names to attach to the post.
-    PatchedUserWriteRequestRequest:
+          writeOnly: true
+    PatchedUserRequest:
       type: object
       properties:
         username:
           type: string
           minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
         email:
           type: string
           format: email
           minLength: 1
+          maxLength: 254
         first_name:
           type: string
+          maxLength: 150
         last_name:
           type: string
+          maxLength: 150
         display_name:
           type: string
+          maxLength: 120
         bio:
           type: string
         phone_no:
           type: string
+          maxLength: 20
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
         dob:
           type: string
           format: date
-        file:
-          type: string
-          format: binary
-          description: Profile picture to upload (multipart/form-data). Automatically
-            sets profile_pic URL.
+          nullable: true
     Post:
       type: object
       properties:
@@ -871,36 +822,44 @@ components:
       - name
       - tags
       - updated_at
-    PostWriteRequestRequest:
+    PostLikeToggleResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        liked:
+          type: boolean
+      required:
+      - detail
+      - liked
+    PostRequest:
       type: object
       properties:
         name:
           type: string
           minLength: 1
+          maxLength: 150
         content:
           type: string
           minLength: 1
-        category:
-          type: string
         image:
           type: string
-          description: URL of an existing image. Ignored if 'file' is provided.
-        file:
+          format: uri
+          maxLength: 200
+        category:
           type: string
-          format: binary
-          description: Image file to upload (multipart/form-data). Automatically sets
-            the image URL.
+          maxLength: 80
         tag_names:
           type: array
           items:
             type: string
             minLength: 1
             maxLength: 50
-          description: List of tag names to attach to the post.
+          writeOnly: true
       required:
       - content
       - name
-    TokenResponse:
+    Token:
       type: object
       properties:
         token:
@@ -1070,85 +1029,102 @@ components:
       - email
       - password
       - username
-    UserRegistrationResponse:
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        display_name:
+          type: string
+          maxLength: 120
+        bio:
+          type: string
+        phone_no:
+          type: string
+          maxLength: 20
+        profile_pic:
+          type: string
+          format: uri
+          maxLength: 200
+        dob:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - email
+      - username
+    UserWithToken:
       type: object
       properties:
         id:
           type: integer
+          readOnly: true
         username:
           type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
         email:
           type: string
           format: email
+          maxLength: 254
         first_name:
           type: string
+          maxLength: 150
         last_name:
           type: string
+          maxLength: 150
         display_name:
           type: string
+          maxLength: 120
         bio:
           type: string
         phone_no:
           type: string
+          maxLength: 20
         profile_pic:
           type: string
+          format: uri
+          maxLength: 200
         dob:
           type: string
           format: date
+          nullable: true
         followers_count:
           type: integer
+          readOnly: true
         following_count:
           type: integer
+          readOnly: true
         token:
           type: string
+          readOnly: true
           description: 'Auth token to use in the Authorization header as: Token <token>'
       required:
-      - bio
-      - display_name
-      - dob
       - email
-      - first_name
       - followers_count
       - following_count
       - id
-      - last_name
-      - phone_no
-      - profile_pic
       - token
       - username
-    UserWriteRequestRequest:
-      type: object
-      properties:
-        username:
-          type: string
-          minLength: 1
-        email:
-          type: string
-          format: email
-          minLength: 1
-        first_name:
-          type: string
-        last_name:
-          type: string
-        display_name:
-          type: string
-        bio:
-          type: string
-        phone_no:
-          type: string
-        dob:
-          type: string
-          format: date
-        file:
-          type: string
-          format: binary
-          description: Profile picture to upload (multipart/form-data). Automatically
-            sets profile_pic URL.
   securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
     tokenAuth:
       type: apiKey
       in: header

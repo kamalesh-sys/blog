@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
-from rest_framework import serializers, status
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -12,11 +12,16 @@ from apps.common.email_notifications import send_activity_email
 from apps.common.image_utils import upload_image_file
 from .models import Follow
 from .serializers import (
+    FollowToggleResponseSerializer,
+    ImageUploadRequestSerializer,
+    ImageUploadResponseSerializer,
+    TokenSerializer,
     UserLoginSerializer,
     UserPublicDetailSerializer,
     UserPublicSerializer,
     UserRegistrationSerializer,
     UserSerializer,
+    UserWithTokenSerializer,
 )
 
 
@@ -30,73 +35,6 @@ def get_user_or_404(user_id):
     return user
 
 
-TokenResponseSerializer = inline_serializer(
-    name="TokenResponse",
-    fields={
-        "token": serializers.CharField(),
-    },
-)
-
-ImageUploadRequestSerializer = inline_serializer(
-    name="ImageUploadRequest",
-    fields={
-        "file": serializers.ImageField(required=True),
-    },
-)
-
-ImageUploadResponseSerializer = inline_serializer(
-    name="ImageUploadResponse",
-    fields={
-        "url": serializers.CharField(),
-    },
-)
-
-FollowToggleResponseSerializer = inline_serializer(
-    name="FollowToggleResponse",
-    fields={
-        "detail": serializers.CharField(),
-        "following": serializers.BooleanField(),
-    },
-)
-
-UserRegistrationResponseSerializer = inline_serializer(
-    name="UserRegistrationResponse",
-    fields={
-        "id": serializers.IntegerField(),
-        "username": serializers.CharField(),
-        "email": serializers.EmailField(),
-        "first_name": serializers.CharField(),
-        "last_name": serializers.CharField(),
-        "display_name": serializers.CharField(),
-        "bio": serializers.CharField(),
-        "phone_no": serializers.CharField(),
-        "profile_pic": serializers.CharField(),
-        "dob": serializers.DateField(),
-        "followers_count": serializers.IntegerField(),
-        "following_count": serializers.IntegerField(),
-        "token": serializers.CharField(help_text="Auth token to use in the Authorization header as: Token <token>"),
-    },
-)
-
-UserWriteRequestSerializer = inline_serializer(
-    name="UserWriteRequest",
-    fields={
-        "username": serializers.CharField(required=False),
-        "email": serializers.EmailField(required=False),
-        "first_name": serializers.CharField(required=False, allow_blank=True),
-        "last_name": serializers.CharField(required=False, allow_blank=True),
-        "display_name": serializers.CharField(required=False, allow_blank=True),
-        "bio": serializers.CharField(required=False, allow_blank=True),
-        "phone_no": serializers.CharField(required=False, allow_blank=True),
-        "dob": serializers.DateField(required=False),
-        "file": serializers.ImageField(
-            required=False,
-            help_text="Profile picture to upload (multipart/form-data). Automatically sets profile_pic URL.",
-        ),
-    },
-)
-
-
 @extend_schema_view(
     post=extend_schema(
         summary="Register a new user",
@@ -104,7 +42,7 @@ UserWriteRequestSerializer = inline_serializer(
         tags=["Auth"],
         request=UserRegistrationSerializer,
         responses={
-            201: UserRegistrationResponseSerializer,
+            201: UserWithTokenSerializer,
             400: OpenApiResponse(description="Validation error"),
         },
         auth=[],
@@ -134,7 +72,7 @@ class UserRegistrationAPIView(APIView):
         tags=["Auth"],
         request=UserLoginSerializer,
         responses={
-            200: TokenResponseSerializer,
+            200: TokenSerializer,
             400: OpenApiResponse(description="Invalid credentials or missing fields"),
         },
         auth=[],
@@ -174,7 +112,7 @@ class UserLoginAPIView(APIView):
     put=extend_schema(
         summary="Replace current user profile",
         tags=["Users"],
-        request=UserWriteRequestSerializer,
+        request=UserSerializer,
         responses={
             200: UserSerializer,
             400: OpenApiResponse(description="Validation error"),
@@ -184,7 +122,7 @@ class UserLoginAPIView(APIView):
     patch=extend_schema(
         summary="Partially update current user profile",
         tags=["Users"],
-        request=UserWriteRequestSerializer,
+        request=UserSerializer,
         responses={
             200: UserSerializer,
             400: OpenApiResponse(description="Validation error"),
