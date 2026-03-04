@@ -46,7 +46,7 @@ EMAIL_USE_SSL=false
 ```
 
 ## Endpoints
-
+#
 ### Auth
 - `POST /api/auth/register/`
 - `POST /api/auth/login/`
